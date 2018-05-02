@@ -21,7 +21,8 @@ from charmhelpers.core import hookenv
 
 def render(source, target, context, owner='root', group='root',
            perms=0o444, templates_dir=None, encoding='UTF-8',
-           template_loader=None, config_template=None):
+           template_loader=None, config_template=None,
+           keep_trailing_newline=True):
     """
     Render a template.
 
@@ -39,6 +40,9 @@ def render(source, target, context, owner='root', group='root',
     The `owner`, `group`, and `perms` options will be passed to `write_file`.
 
     If omitted, `templates_dir` defaults to the `templates` folder in the charm.
+
+    If `keep_trailing_newline` is True, a single trailing newline will not
+    be trimmed. If defaults to True, which is different to the Jinja2 default.
 
     The rendered template will be written to the file as well as being returned
     as a string.
@@ -63,12 +67,12 @@ def render(source, target, context, owner='root', group='root',
             apt_install('python3-jinja2', fatal=True)
         from jinja2 import FileSystemLoader, Environment, exceptions
 
-    if template_loader:
-        template_env = Environment(loader=template_loader)
-    else:
+    if not template_loader:
         if templates_dir is None:
             templates_dir = os.path.join(hookenv.charm_dir(), 'templates')
-        template_env = Environment(loader=FileSystemLoader(templates_dir))
+        template_loader = FileSystemLoader(templates_dir)
+    template_env = Environment(loader=template_loader,
+                               keep_trailing_newline=keep_trailing_newline)
 
     # load from a string if provided explicitly
     if config_template is not None:

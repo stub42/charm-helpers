@@ -164,3 +164,23 @@ class TestTemplating(unittest.TestCase):
             'fake.src', 'fake.tgt', {}, templates_dir='tmpl')
         hookenv.log.assert_called_once_with(
             'Could not load template fake.src from tmpl.', level=hookenv.ERROR)
+
+    @mock.patch.object(templating.host.os, 'fchown')
+    @mock.patch.object(templating.host, 'log')
+    def test_trailing_newline(self, log, fchown):
+        with tempfile.NamedTemporaryFile() as fn1:
+            context = {'nginx_port': 42}
+            default = templating.render('test.conf', fn1.name, context,
+                                        templates_dir=TEMPLATES_DIR)
+            nl = templating.render('test.conf', fn1.name, context,
+                                   templates_dir=TEMPLATES_DIR,
+                                   keep_trailing_newline=True)
+            nonl = templating.render('test.conf', fn1.name, context,
+                                     templates_dir=TEMPLATES_DIR,
+                                     keep_trailing_newline=False)
+        # Default is to leave the trailing newline, because a common bug
+        # has been generating invalid crontab files without the newline.
+        self.assertNotEqual(default[-1], '\n')
+        self.assertEqual(nl[-1], '\n')
+        self.assertNotEqual(nonl[-1], '\n')
+        self.assertEqual(nl[:-1], nonl)
